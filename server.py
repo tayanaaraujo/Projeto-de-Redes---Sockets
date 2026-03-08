@@ -38,6 +38,7 @@ print("Cliente conectado:", addr)
 #mensagem de conexão
 hora = datetime.now().strftime("%H:%M:%S")
 mensagem = f"{hora}: CONECTADO!\n"
+mensagem += "\nLista de ativos sem modificação de preço:\n"
 conn.send(mensagem.encode())
 
 #envia ativos iniciais
@@ -59,7 +60,6 @@ def processar_ordem():
 
             #ordem de compra
             if comando[0] == ":buy":
-
                 ativo = comando[1]
                 qtd = int(comando[2])
 
@@ -106,6 +106,7 @@ def processar_ordem():
                 conn.send(texto.encode())
 
             elif comando[0] == ":exit":
+                print("Cliente desconectou:", addr)
                 conn.send("Encerrando conexão\n".encode())
                 conn.close()
                 break
@@ -121,20 +122,20 @@ def atualizar_precos():
             variacao = ativos[ativo] * random.uniform(-0.05, 0.05)
             ativos[ativo] += variacao
 
-        texto = "\nAtualização de preços:\n"
+        texto = "Atualização de preços:\n"
 
         for ativo, preco in ativos.items():
-            texto += f"{ativo}: {round(preco,2)}\n"
+            texto += f"{ativo}: R$ {round(preco,2)}\n"
 
         try:
             conn.send(texto.encode())
         except:
             break
 
-        time.sleep(5) #atualiza a cada 5 seg.
+        time.sleep(10) #atualiza a cada 10 seg.
 
 
-#Criando threads para processar ordens e atualizar preços
+#criando threads para processar ordens e atualizar preços
 thread1 = threading.Thread(target=processar_ordem)
 thread2 = threading.Thread(target=atualizar_precos)
 
