@@ -13,11 +13,17 @@ client.connect((HOST, PORT))
 def receber_mensagens():
     while True:
         try:
-            msg = client.recv(1024).decode()
-            if not msg:
+            dados = client.recv(1024).decode()
+
+            if not dados:
                 break
 
-            print("\r" + msg)
+            mensagens = dados.split("\n")
+
+            for msg in mensagens:
+                if msg.strip() != "":
+                    print("\n" + msg)
+
             print(">> ", end="", flush=True)
 
         except:
@@ -27,11 +33,19 @@ def receber_mensagens():
 # Thread 2 - enviar comandos
 def enviar_comandos():
     while True:
-        comando = input(">> ")
-        client.send(comando.encode())
+        try:
+            comando = input(">> ")
 
-        if comando == ":exit":
-            client.close()
+            if comando.strip() == "":
+                continue
+
+            client.send((comando + "\n").encode())
+
+            if comando.lower() == "exit":
+                client.close()
+                sys.exit()
+
+        except:
             break
 
 

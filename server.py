@@ -46,73 +46,115 @@ for ativo, preco in ativos.items():
     msg = f"{ativo} - R$ {preco}\n"
     conn.send(msg.encode())
 
-# THEREAD 1 - processar ordem de compra/venda
 def processar_ordem():
     global saldo
 
     while True:
         try:
             dados = conn.recv(1024).decode()
+
             if not dados:
                 break
 
-            comando = dados.strip().split()
+            linhas = dados.split("\n")
 
-            #ordem de compra
-            if comando[0] == ":buy":
-                ativo = comando[1]
-                qtd = int(comando[2])
+            for linha in linhas:
 
-                if ativo in ativos:
-                    preco = ativos[ativo]
-                    custo = preco * qtd
+                if not linha.strip():
+                    continue
 
-                    if saldo >= custo:
-                        saldo -= custo
-                        if ativo in carteira:
-                            carteira[ativo] += qtd
+                comando = linha.strip().split()
+
+                if not comando:
+                    continue
+
+                # comprar
+                if comando[0] == "buy":
+
+                    if len(comando) != 3:
+                        conn.send("Uso: buy ATIVO QUANTIDADE\n".encode())
+                        continue
+
+                    ativo = comando[1]
+                    qtd = int(comando[2])
+
+                    if ativo in ativos:
+                        preco = ativos[ativo]
+                        custo = preco * qtd
+
+                        if saldo >= custo:
+
+                            saldo -= custo
+
+                            if ativo in carteira:
+                                carteira[ativo] += qtd
+                            else:
+                                carteira[ativo] = qtd
+
+                            resposta = f"Comprou {qtd} de {ativo}\n"
+
                         else:
-                            carteira[ativo] = qtd
-
-                        resposta = f"Comprou {qtd} de {ativo}\n"
+                            resposta = "Saldo insuficiente\n"
 
                     else:
-                        resposta = "Saldo insuficiente\n"
+                        resposta = "Ativo não existe\n"
+
+                    conn.send(resposta.encode())
+
+                # vender
+                elif comando[0] == "sell":
+
+                    if len(comando) != 3:
+                        conn.send("Uso: sell ATIVO QUANTIDADE\n".encode())
+                        continue
+
+                    ativo = comando[1]
+                    qtd = int(comando[2])
+
+                    if ativo in carteira and carteira[ativo] >= qtd:
+
+                        preco = ativos[ativo]
+                        valor = preco * qtd
+
+                        carteira[ativo] -= qtd
+                        saldo += valor
+
+                        resposta = f"Vendeu {qtd} de {ativo}\n"
+
+                    else:
+                        resposta = "Você não tem esse ativo\n"
+
+                    conn.send(resposta.encode())
+
+                # carteira
+                elif comando[0] == "carteira":
+
+                    texto = f"Saldo: R$ {round(saldo, 2)}\n"
+
+                    if not carteira:
+                        texto += "Carteira vazia\n"
+                    else:
+                        for ativo, qtd in carteira.items():
+                            texto += f"{ativo}: {qtd}\n"
+
+                    conn.send(texto.encode())
+
+                # sair
+                elif comando[0] == "exit":
+
+                    print("Cliente desconectou:", addr)
+
+                    conn.send("Encerrando conexão\n".encode())
+
+                    conn.close()
+
+                    return
+
                 else:
-                    resposta = "Ativo não existe\n"
+                    conn.send("Comando inválido\n".encode())
 
-                conn.send(resposta.encode())
-
-            #ordem de venda
-            elif comando[0] == ":sell":
-                ativo = comando[1]
-                qtd = int(comando[2])
-
-                if ativo in carteira and carteira[ativo] >= qtd:
-                    preco = ativos[ativo]
-                    valor = preco * qtd
-                    carteira[ativo] -= qtd
-                    saldo += valor
-                    resposta = f"Vendeu {qtd} de {ativo}\n"
-                else:
-                    resposta = "Você não tem esse ativo\n"
-                
-                conn.send(resposta.encode())
-
-            elif comando[0] == ":carteira":
-                texto = f"Saldo: R$ {round(saldo, 2)}\n"
-                for ativo, qtd in carteira.items():
-                    texto += f"{ativo}: {qtd}\n"
-                conn.send(texto.encode())
-
-            elif comando[0] == ":exit":
-                print("Cliente desconectou:", addr)
-                conn.send("Encerrando conexão\n".encode())
-                conn.close()
-                break
-
-        except:
-            break
+        except Exception as e:
+            print("Erro ao processar comando:", e)
 
 #THREAD 2 -  simular a variação dos preços dos ativos
 def atualizar_precos():
@@ -132,7 +174,7 @@ def atualizar_precos():
         except:
             break
 
-        time.sleep(10) #atualiza a cada 10 seg.
+        time.sleep(100) #atualiza a cada x seg.
 
 
 #criando threads para processar ordens e atualizar preços
