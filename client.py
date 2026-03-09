@@ -24,7 +24,7 @@ def receber_mensagens():
                 if msg.strip() != "":
                     print("\n" + msg)
 
-            print(">> ", end="", flush=True)
+            print(flush=True)
 
         except:
             break
@@ -34,7 +34,7 @@ def receber_mensagens():
 def enviar_comandos():
     while True:
         try:
-            comando = input(">> ")
+            comando = input(">>")
 
             if comando.strip() == "":
                 continue
@@ -43,7 +43,6 @@ def enviar_comandos():
 
             if comando.lower() == "exit":
                 client.close()
-                sys.exit()
 
         except:
             break

@@ -56,7 +56,7 @@ def processar_ordem():
             if not dados:
                 break
 
-            linhas = dados.split("\n")
+            linhas = dados.split("")
 
             for linha in linhas:
 
@@ -160,8 +160,8 @@ def processar_ordem():
 def atualizar_precos():
     while True:
         for ativo in ativos:
-            #variação aleatória entre -5% e +5%
-            variacao = ativos[ativo] * random.uniform(-0.05, 0.05)
+            #variação aleatória entre -1% e +1%
+            variacao = ativos[ativo] * random.uniform(-0.01, 0.01)
             ativos[ativo] += variacao
 
         texto = "Atualização de preços:\n"
