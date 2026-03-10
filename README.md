@@ -42,5 +42,3 @@ O sistema possui um **servidor** que controla os ativos e um **cliente** que per
 - WEGE3
 
 ---
-
-### Etapa 1 
