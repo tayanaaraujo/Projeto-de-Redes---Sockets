@@ -7,7 +7,7 @@ Este projeto simula um ambiente simples de negociação de ativos da bolsa de va
 
 O sistema possui um **servidor** que controla os ativos e um **cliente** que permite ao usuário enviar ordens de compra e venda.
 
-## Etapa 1 
+### Etapa 1 
 
 ---
 
