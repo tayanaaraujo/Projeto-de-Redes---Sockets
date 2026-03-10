@@ -56,7 +56,7 @@ def processar_ordem():
             if not dados:
                 break
 
-            linhas = dados.split("")
+            linhas = dados.split("\n")
 
             for linha in linhas:
 
@@ -94,10 +94,10 @@ def processar_ordem():
                             resposta = f"Comprou {qtd} de {ativo}\n"
 
                         else:
-                            resposta = "Saldo insuficiente\n"
+                            resposta = "Saldo insuficiente.\n"
 
                     else:
-                        resposta = "Ativo não existe\n"
+                        resposta = "Ativo não existe.\n"
 
                     conn.send(resposta.encode())
 
@@ -119,10 +119,10 @@ def processar_ordem():
                         carteira[ativo] -= qtd
                         saldo += valor
 
-                        resposta = f"Vendeu {qtd} de {ativo}\n"
+                        resposta = f"Vendeu {qtd} de {ativo}.\n"
 
                     else:
-                        resposta = "Você não tem esse ativo\n"
+                        resposta = "Você não tem esse ativo.\n"
 
                     conn.send(resposta.encode())
 
@@ -132,7 +132,7 @@ def processar_ordem():
                     texto = f"Saldo: R$ {round(saldo, 2)}\n"
 
                     if not carteira:
-                        texto += "Carteira vazia\n"
+                        texto += "Carteira vazia.\n"
                     else:
                         for ativo, qtd in carteira.items():
                             texto += f"{ativo}: {qtd}\n"
@@ -141,27 +141,23 @@ def processar_ordem():
 
                 # sair
                 elif comando[0] == "exit":
-
                     print("Cliente desconectou:", addr)
-
                     conn.send("Encerrando conexão\n".encode())
-
                     conn.close()
-
                     return
 
                 else:
-                    conn.send("Comando inválido\n".encode())
+                    conn.send("Comando inválido.\n".encode())
 
-        except Exception as e:
-            print("Erro ao processar comando:", e)
+        except Exception:
+            break
 
 #THREAD 2 -  simular a variação dos preços dos ativos
 def atualizar_precos():
     while True:
         for ativo in ativos:
-            #variação aleatória entre -1% e +1%
-            variacao = ativos[ativo] * random.uniform(-0.01, 0.01)
+            #variação aleatória em centavos
+            variacao = random.uniform(-0.1, 0.1)
             ativos[ativo] += variacao
 
         texto = "Atualização de preços:\n"
@@ -174,7 +170,7 @@ def atualizar_precos():
         except:
             break
 
-        time.sleep(100) #atualiza a cada x seg.
+        time.sleep(20) #atualiza a cada x seg.
 
 
 #criando threads para processar ordens e atualizar preços

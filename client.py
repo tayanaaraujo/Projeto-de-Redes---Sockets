@@ -18,11 +18,11 @@ def receber_mensagens():
             if not dados:
                 break
 
-            mensagens = dados.split("\n")
+            mensagens = dados.split(">> ")
 
             for msg in mensagens:
                 if msg.strip() != "":
-                    print("\n" + msg)
+                    print(msg)
 
             print(flush=True)
 
@@ -33,18 +33,11 @@ def receber_mensagens():
 # Thread 2 - enviar comandos
 def enviar_comandos():
     while True:
-        try:
-            comando = input(">>")
+        comando = input(">> ")
+        client.send(comando.encode())
 
-            if comando.strip() == "":
-                continue
-
-            client.send((comando + "\n").encode())
-
-            if comando.lower() == "exit":
-                client.close()
-
-        except:
+        if comando == "exit":
+            client.close()
             break
 
 
