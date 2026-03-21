@@ -2,7 +2,16 @@ import socket
 import threading
 import time
 import random
+import sys
+import json
 from datetime import datetime
+
+#definir o número máximo de conexões simultâneas caso o servidor seja executado sem argumentos
+if len(sys.argv) > 1:
+    LIMITE = int(sys.argv[1])
+else:
+    LIMITE = 5
+
 
 #precisamos dizer ao nosso SO que desejamos criar um socket com determinadas características (TCP, IPv4)
 HOST = "127.0.0.1"
@@ -18,8 +27,23 @@ ativos = {
     "WEGE3": 40.0
 }
 
-saldo = 1000
-carteira = {}
+arq = "usuarios.json"
+
+def carregar():
+    try:
+        with open(arq, "r") as f:
+            return json.load(f)
+    except:
+        return {}
+    
+def salvar(usuarios):
+    with open(arq, "w") as f:
+        json.dump(usuarios, f)
+
+usuarios = carregar()
+
+clientes = []
+lock = threading.Lock()
 
 #AF_INET para endereços de rede IPv4
 #SOCK_STREAM protoclo TCP na camada de transporte
@@ -27,28 +51,44 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #criando socket
 
 server.bind((HOST, PORT)) #ligar IP + porta
 
-server.listen(1) #servidor começa a escutar conexões (por enquanto apenas com 1 cliente)
+server.listen(LIMITE) #servidor começa a escutar conexões 
 
 print("Servidor aguardando conexão...")
 
-conn, addr = server.accept() #conn → conexão com cliente, addr → endereço do cliente
+#acitando mais de um cliente
+def aceitar_clientes(conn, addr):
+    print("Cliente conectado:", addr)
 
-print("Cliente conectado:", addr)
+    with lock:
+        clientes.append(conn)
 
-#mensagem de conexão
-hora = datetime.now().strftime("%H:%M:%S")
-mensagem = f"{hora}: CONECTADO!\n"
-mensagem += "\nLista de ativos sem modificação de preço:\n"
-conn.send(mensagem.encode())
+    #login
+    conn.send("Digite seu nome:\n".encode())
+    nome = conn.recv(1024).decode().strip()
 
-#envia ativos iniciais
-for ativo, preco in ativos.items():
-    msg = f"{ativo} - R$ {preco}\n"
-    conn.send(msg.encode())
+    if nome not in usuarios:
+        usuarios[nome] = {"saldo":1000, "carteira": {}}
+        salvar(usuarios)
+    
+    #manda ativos iniciais
+    hora = datetime.now().strftime("%H:%M:%S")
+    mensagem = f"{hora}: CONECTADO!\n"
+    conn.send(mensagem.encode())
 
-def processar_ordem():
-    global saldo
+    for ativo, preco in ativos.items():
+        conn.send(f"{ativo} - R$ {preco}\n".encode())
 
+    t1 = threading.Thread(target=processar_ordem, args=(conn, addr, nome))
+    t2 = threading.Thread(target=enviar_precos_cliente, args=(conn,))
+
+    t1.start()
+    t2.start()
+
+
+def processar_ordem(conn, addr, nome):
+
+    carteira = usuarios[nome]["carteira"]
+    
     while True:
         try:
             dados = conn.recv(1024).decode()
@@ -68,7 +108,7 @@ def processar_ordem():
                 if not comando:
                     continue
 
-                # comprar
+                # buy
                 if comando[0] == "buy":
 
                     if len(comando) != 3:
@@ -82,14 +122,16 @@ def processar_ordem():
                         preco = ativos[ativo]
                         custo = preco * qtd
 
-                        if saldo >= custo:
+                        if usuarios[nome]["saldo"] >= custo:
 
-                            saldo -= custo
+                            usuarios[nome]["saldo"] -= custo
 
                             if ativo in carteira:
                                 carteira[ativo] += qtd
                             else:
                                 carteira[ativo] = qtd
+
+                            salvar(usuarios)
 
                             resposta = f"Comprou {qtd} de {ativo}\n"
 
@@ -101,7 +143,7 @@ def processar_ordem():
 
                     conn.send(resposta.encode())
 
-                # vender
+                # sell
                 elif comando[0] == "sell":
 
                     if len(comando) != 3:
@@ -117,7 +159,9 @@ def processar_ordem():
                         valor = preco * qtd
 
                         carteira[ativo] -= qtd
-                        saldo += valor
+                        usuarios[nome]["saldo"] += valor
+
+                        salvar(usuarios)
 
                         resposta = f"Vendeu {qtd} de {ativo}.\n"
 
@@ -129,7 +173,7 @@ def processar_ordem():
                 # carteira
                 elif comando[0] == "carteira":
 
-                    texto = f"Saldo: R$ {round(saldo, 2)}\n"
+                    texto = f"Saldo: R$ {round(usuarios[nome]['saldo'], 2)}\n"
 
                     if not carteira:
                         texto += "Carteira vazia.\n"
@@ -143,6 +187,10 @@ def processar_ordem():
                 elif comando[0] == "exit":
                     print("Cliente desconectou:", addr)
                     conn.send("Encerrando conexão\n".encode())
+
+                    with lock:
+                        if conn in clientes:
+                            clientes.remove(conn)
                     conn.close()
                     return
 
@@ -150,35 +198,46 @@ def processar_ordem():
                     conn.send("Comando inválido.\n".encode())
 
         except Exception:
+            with lock:
+                if conn in clientes:
+                    clientes.remove(conn)
+            break
+
+def enviar_precos_cliente(conn):
+    while True:
+        try:
+            texto = "Atualização de preços:\n"
+
+            for ativo, preco in ativos.items():
+                texto += f"{ativo}: R$ {round(preco,2)}\n"
+
+            conn.send(texto.encode())
+            time.sleep(20)
+
+        except:
             break
 
 #THREAD 2 -  simular a variação dos preços dos ativos
 def atualizar_precos():
     while True:
         for ativo in ativos:
-            #variação aleatória em centavos
             variacao = random.uniform(-0.1, 0.1)
             ativos[ativo] += variacao
 
-        texto = "Atualização de preços:\n"
-
-        for ativo, preco in ativos.items():
-            texto += f"{ativo}: R$ {round(preco,2)}\n"
-
-        try:
-            conn.send(texto.encode())
-        except:
-            break
-
         time.sleep(20) #atualiza a cada x seg.
 
+thread_precos = threading.Thread(target=atualizar_precos, daemon=True)
+thread_precos.start()
 
-#criando threads para processar ordens e atualizar preços
-thread1 = threading.Thread(target=processar_ordem)
-thread2 = threading.Thread(target=atualizar_precos)
+while True:
+    conn, addr = server.accept()
 
-thread1.start()
-thread2.start()
+    with lock:
+        if len(clientes) >= LIMITE:
+            conn.send("Servidor lotado. Tente novamente mais tarde.\n".encode())
+            conn.close()
+            continue
 
-thread1.join()
-thread2.join()
+    thread = threading.Thread(target=aceitar_clientes, args=(conn, addr))
+    thread.start()
+

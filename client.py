@@ -1,6 +1,5 @@
 import socket
 import threading
-import sys
 
 HOST = "127.0.0.1"
 PORT = 5000
@@ -18,13 +17,7 @@ def receber_mensagens():
             if not dados:
                 break
 
-            mensagens = dados.split(">> ")
-
-            for msg in mensagens:
-                if msg.strip() != "":
-                    print(msg)
-
-            print(flush=True)
+            print(dados, end="\n")  
 
         except:
             break
@@ -33,11 +26,14 @@ def receber_mensagens():
 # Thread 2 - enviar comandos
 def enviar_comandos():
     while True:
-        comando = input(">> ")
-        client.send(comando.encode())
+        try:
+            comando = input(">> ")
+            client.send((comando + "\n").encode())
 
-        if comando == "exit":
-            client.close()
+            if comando == "exit":
+                client.close()
+                break
+        except:
             break
 
 
