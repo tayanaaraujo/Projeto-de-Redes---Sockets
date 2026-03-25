@@ -12,7 +12,6 @@ if len(sys.argv) > 1:
 else:
     LIMITE = 5
 
-
 #precisamos dizer ao nosso SO que desejamos criar um socket com determinadas características (TCP, IPv4)
 HOST = "127.0.0.1"
 PORT = 5000
@@ -60,7 +59,7 @@ server.listen(LIMITE)
 
 print("Servidor aguardando conexão...")
 
-#acitando mais de um cliente
+#aceitando mais de um cliente
 def aceitar_clientes(conn, addr):
     print("Cliente conectado:", addr)
 
