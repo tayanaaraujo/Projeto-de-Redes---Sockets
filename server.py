@@ -27,6 +27,15 @@ ativos = {
     "WEGE3": 40.0
 }
 
+# para comando help
+COMANDOS = {
+    "buy": "buy ATIVO QUANTIDADE - Comprar um ativo",
+    "sell": "sell ATIVO QUANTIDADE - Vender um ativo",
+    "carteira": "carteira - Exibir saldo e ativos",
+    "exit": "exit - Encerrar conexão",
+    "help": "help - Listar comandos disponíveis"
+}
+
 arq = "usuarios.json"
 
 def carregar():
@@ -45,13 +54,9 @@ usuarios = carregar()
 clientes = []
 lock = threading.Lock()
 
-#AF_INET para endereços de rede IPv4
-#SOCK_STREAM protoclo TCP na camada de transporte
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #criando socket
-
-server.bind((HOST, PORT)) #ligar IP + porta
-
-server.listen(LIMITE) #servidor começa a escutar conexões 
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind((HOST, PORT))
+server.listen(LIMITE)
 
 print("Servidor aguardando conexão...")
 
@@ -183,6 +188,13 @@ def processar_ordem(conn, addr, nome):
 
                     conn.send(texto.encode())
 
+                # help 
+                elif comando[0] == "help":
+                    resposta = "Comandos disponíveis:\n"
+                    for cmd in COMANDOS.values():
+                        resposta += f"- {cmd}\n"
+                    conn.send(resposta.encode())
+
                 # sair
                 elif comando[0] == "exit":
                     print("Cliente desconectou:", addr)
@@ -203,6 +215,7 @@ def processar_ordem(conn, addr, nome):
                     clientes.remove(conn)
             break
 
+
 def enviar_precos_cliente(conn):
     while True:
         try:
@@ -217,7 +230,7 @@ def enviar_precos_cliente(conn):
         except:
             break
 
-#THREAD 2 -  simular a variação dos preços dos ativos
+
 def atualizar_precos():
     while True:
         for ativo in ativos:
@@ -240,4 +253,3 @@ while True:
 
     thread = threading.Thread(target=aceitar_clientes, args=(conn, addr))
     thread.start()
-
