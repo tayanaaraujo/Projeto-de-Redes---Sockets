@@ -41,4 +41,5 @@ O sistema possui um **servidor** que controla os ativos e um **cliente** que per
 - MGLU3
 - WEGE3
 
+Parte 2 finalizada.
 ---
