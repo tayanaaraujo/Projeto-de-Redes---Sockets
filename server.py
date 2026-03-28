@@ -17,7 +17,7 @@ HOST = "127.0.0.1"
 PORT = 5000
 
 #ativos disponíveis
-ativos = {
+ativos_iniciais = {
     "PETR4": 30.0,
     "VALE3": 60.0,
     "ITUB4": 28.0,
@@ -25,6 +25,8 @@ ativos = {
     "MGLU3": 3.5,
     "WEGE3": 40.0
 }
+
+ativos = ativos_iniciais.copy()
 
 # para comando help
 COMANDOS = {
@@ -79,8 +81,9 @@ def aceitar_clientes(conn, addr):
     mensagem = f"{hora}: CONECTADO!\n"
     conn.send(mensagem.encode())
 
-    for ativo, preco in ativos.items():
-        conn.send(f"{ativo} - R$ {preco}\n".encode())
+
+    for ativo, preco in ativos_iniciais.items():
+        conn.send(f"{ativo} - R$ {preco:.2f}\n".encode())
 
     t1 = threading.Thread(target=processar_ordem, args=(conn, addr, nome))
     t2 = threading.Thread(target=enviar_precos_cliente, args=(conn,))
