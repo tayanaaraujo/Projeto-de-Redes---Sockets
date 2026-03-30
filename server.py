@@ -183,7 +183,7 @@ def processar_ordem(conn, addr, nome):
                     texto = f"Saldo: R$ {round(usuarios[nome]['saldo'], 2)}\n"
 
                     if not carteira:
-                        texto += "Carteira vazia.\n"
+                        texto += "Carteira vazia (sem ativos).\n"
                     else:
                         for ativo, qtd in carteira.items():
                             texto += f"{ativo}: {qtd}\n"
