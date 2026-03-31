@@ -101,6 +101,7 @@ def processar_ordem(conn, addr, nome):
             dados = conn.recv(1024).decode()
 
             if not dados:
+                print(f"Estado: DESCONECTADO ({addr})")
                 break
 
             linhas = dados.split("\n")
@@ -206,17 +207,34 @@ def processar_ordem(conn, addr, nome):
                         if conn in clientes:
                             clientes.remove(conn)
                     conn.close()
-                    return
+                    break
 
                 else:
                     conn.send("Comando inválido.\n".encode())
 
-        except Exception:
+        except socket.timeout:
+            continue  
+
+        except ConnectionResetError:
+            print(f"Estado: CONEXÃO QUEBRADA ({addr})")
+            break
+
+        except Exception as e:
+            print(f"Erro com {addr}: {e}")
             with lock:
                 if conn in clientes:
                     clientes.remove(conn)
             break
 
+        finally:
+            with lock:
+                if conn in clientes:
+                    clientes.remove(conn)
+
+    try:
+        conn.close()
+    except:
+        pass
 
 def enviar_precos_cliente(conn):
     while True:
