@@ -43,3 +43,4 @@ O sistema possui um **servidor** que controla os ativos e um **cliente** que per
 
 Parte 2 finalizada.
 ---
+Parte 3 finalizada
